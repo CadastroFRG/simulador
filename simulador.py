@@ -3,23 +3,30 @@ import pandas as pd
 import locale
 from io import BytesIO
 
-# Configurar locale para formato brasileiro
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except:
-    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
-
-# Função para formatar valores em reais no formato brasileiro
+# Função para formatar valores em reais no formato brasileiro (Versão Universal)
 def formatar_reais(valor):
-    """Formata valor monetário no padrão brasileiro (R$ 1.234,56)"""
-    try:
-        # Formatar com locale
-        return locale.currency(valor, grouping=True, symbol=True)
-    except:
-        # Fallback caso o locale não funcione
-        valor_formatado = f"{valor:,.2f}"
-        valor_formatado = valor_formatado.replace(",", "X").replace(".", ",").replace("X", ".")
-        return f"R$ {valor_formatado}"
+    """
+    Formata valor monetário no padrão brasileiro (R$ 1.234,56)
+    Funciona em Windows e Linux (Streamlit Cloud) sem depender de locale.
+    """
+    if valor is None:
+        return "R$ 0,00"
+    
+    # 1. Formata com padrão americano: 1,234.56
+    valor_formatado = f"{valor:,.2f}"
+    
+    # 2. Inverte os separadores usando um caractere temporário (X)
+    # Vírgula (milhar) vira Ponto
+    # Ponto (decimal) vira Vírgula
+    valor_formatado = valor_formatado.replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    return f"R$ {valor_formatado}"
+
+# Função para formatar números (não moedas) caso precise
+def formatar_numero(valor, casas_decimais=2):
+    format_str = f"{{:,.{casas_decimais}f}}"
+    v = format_str.format(valor)
+    return v.replace(",", "X").replace(".", ",").replace("X", ".")
 
 # Função para converter DataFrame para Excel em memória
 def converter_para_excel(df):
