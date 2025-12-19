@@ -37,6 +37,91 @@ def converter_para_excel(df):
     output.seek(0)
     return output
 
+from fpdf import FPDF
+from datetime import datetime
+import requests
+
+def gerar_pdf_recibo(resumo_df, salario_mensal, salario_anual, contribuicao_mensal_total, 
+                     total_contribuicao_anual, valor_esporadica_personalizado, total_final):
+    """Gera um PDF formatado como recibo oficial da simulação"""
+    
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Adicionar página
+    pdf.add_page()
+    
+    
+    # ===== CABEÇALHO DO PDF =====
+    try:
+        response = requests.get("https://oucamelhor.com.br/contents/images/convenio040.png", timeout=5)
+        if response.status_code == 200:
+            with open("temp_logo.png", "wb") as f:
+                f.write(response.content)
+            pdf.image("temp_logo.png", x=20, y=10, w=40)
+    except:
+        pdf.set_font('Helvetica', 'B', 16)
+        pdf.set_text_color(139, 4, 59)
+        pdf.cell(0, 10, "FRG - Fundacao Real Grandeza", ln=True, align="C")
+    
+    # Título do documento
+    pdf.set_font('Helvetica', 'B', 14)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(20)
+    pdf.cell(0, 10, "RECIBO DE SIMULACAO - CONTRIBUICAO ESPORADICA", ln=True, align="C")
+    
+    # Linha decorativa
+    pdf.set_draw_color(139, 4, 59)
+    pdf.set_line_width(0.5)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(5)
+    
+    # ===== INFORMAÇÕES DA SIMULAÇÃO =====
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 10, "DADOS DA SIMULACAO", ln=True)
+    pdf.set_font('Helvetica', '', 11)
+    
+    # Data e hora
+    from datetime import datetime
+    data_atual = datetime.now().strftime("%d/%m/%Y %H:%M")
+    pdf.cell(0, 7, f"Data da simulacao: {data_atual}", ln=True)
+    pdf.ln(3)
+    
+    # Dados principais em tabela
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(60, 8, "Descricao", border=1, align="C")
+    pdf.cell(40, 8, "Valor", border=1, align="C")
+    pdf.cell(40, 8, "Detalhe", border=1, align="C", ln=True)
+    
+    pdf.set_font('Helvetica', '', 10)
+    
+    dados_principais = [
+        ["Salario Mensal", formatar_reais(salario_mensal), "Base de calculo"],
+        ["Salario Anual", formatar_reais(salario_anual), "14x (inclui PLR)"],
+        ["Contribuicao Mensal", formatar_reais(contribuicao_mensal_total), "Total mensal"],
+        ["Contribuicao Anual", formatar_reais(total_contribuicao_anual), "Acumulado anual"],
+        ["Contribuicao Esporadica", formatar_reais(valor_esporadica_personalizado), "Valor sugerido"],
+        ["TOTAL FINAL", formatar_reais(total_final), "Anual com esporadica"]
+    ]
+    
+    for desc, valor, detalhe in dados_principais:
+        pdf.cell(60, 8, desc, border=1)
+        pdf.cell(40, 8, valor, border=1, align="R")
+        pdf.cell(40, 8, detalhe, border=1, ln=True)
+    
+    pdf.ln(10)
+    
+    # ===== GERAR PDF EM MEMÓRIA =====
+    output = BytesIO()
+    
+    # Usar latin-1 para evitar problemas de codificação
+    pdf_output = pdf.output(dest='S').encode('latin-1', 'ignore')
+    
+    output.write(pdf_output)
+    output.seek(0)
+    
+    return output
+
 # Configurar página com CSS personalizado
 st.set_page_config(
     page_title="Simulador de Contribuição Esporádica - FRG",
@@ -70,7 +155,7 @@ st.markdown("""
     .card-frg {
         background: white;
         border-radius: 10px;
-        padding: 1.5rem;
+        padding: 0.8rem 1.2rem !important;;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border-left: 4px solid #69042a;
         margin-bottom: 1.5rem;
@@ -163,7 +248,7 @@ st.markdown("""
         box-shadow: 0 0 0 0.2rem rgba(139, 4, 59, 0.25); /* Corrigido: vermelho no box-shadow */
     }
     
-    /* Badges para valores fixos - CORRIGIDO (verde para vermelho) */
+    /* Badges para valores fixos*/
     .badge-frg {
         background-color: #f9e9ef;  /* Vermelho claro */
         color: #8b043b;
@@ -186,6 +271,15 @@ st.markdown("""
         background-color: #f5d8e2 !important;  /* Vermelho suave */
     }
 </style>
+""", unsafe_allow_html=True)
+
+# Logo FRG centralizado
+st.markdown("""
+<div style="display: flex; justify-content: center; margin: 2rem 0 1rem 0;">
+    <img src="https://imeb.com.br/wp-content/uploads/2023/03/Real-Grandeza.jpg" 
+         alt="FRG Logo" 
+         style="max-height: 120px; width: auto;">
+</div>
 """, unsafe_allow_html=True)
 
 # Cabeçalho estilo FRG
@@ -525,23 +619,23 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Barra de progresso
+
 st.markdown(f"""
 <div style="margin: 1.5rem 0;">
     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-        <span style="font-size: 0.9rem; color: #6c757d;">Progresso do limite fiscal</span>
+        <span style="font-size: 0.9rem; color: #8B043B;">Progresso do limite fiscal</span>
         <span style="font-size: 0.9rem; font-weight: 600; color: #8b043b;">{progresso:.0%}</span>
     </div>
+    <div style="width: 100%; background-color: #b4869c; border-radius: 10px; overflow: hidden; height: 12px;">
+        <div style="width: {progresso*100}%; background: linear-gradient(90deg, #8b043b 0%, #69042a 100%); height: 100%; border-radius: 10px; transition: width 0.5s ease;"></div>
+    </div>
+</div>
 """, unsafe_allow_html=True)
-st.progress(progresso)
 
-st.markdown("""
-<div style="margin-top: 1rem;">
-""", unsafe_allow_html=True)
-
-if novo_percentual <= percentual_maximo:
-    st.success(f"✅ **Dentro do limite:** Seu percentual de {novo_percentual:.2%} está dentro do limite de 12% para benefício fiscal.")
+if novo_percentual < percentual_maximo:
+    st.success(f"✅ Você ainda pode economizar mais! Seu aporte atual é de {novo_percentual:.2%} Você pode contribuir com mais {percentual_maximo - novo_percentual:.2%} para atingir o teto de 12% e garantir o desconto máximo no seu Imposto de Renda.")
 else:
-    st.warning(f"⚠️ **Atenção:** Seu percentual de {novo_percentual:.2%} ultrapassa o limite de 12% para benefício fiscal.")
+    st.warning(f"🚀 Investimento nota dez! Você atingiu o limite de 12% para dedução fiscal. Seu aporte atual é de {novo_percentual:.2%}, o que demonstra foco no futuro. A partir de agora, o valor excedente não gera desconto extra no IR, mas continua rendendo para você!")
 
 st.markdown("""
 </div>
@@ -640,6 +734,7 @@ st.dataframe(
 )
 
 # Botões de ação
+# Botões de ação
 st.markdown("""
 <div style="margin-top: 2rem;">
     <div style="display: flex; gap: 1rem; justify-content: center;">
@@ -648,7 +743,7 @@ st.markdown("""
 col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
 
 with col_btn2:
-    # Botão para download da tabela
+    # Botão para download da tabela em Excel
     st.download_button(
         label="📥 Baixar Relatório em Excel",
         data=converter_para_excel(resumo_df),
@@ -658,16 +753,37 @@ with col_btn2:
         help="Baixe um relatório completo da simulação em formato Excel"
     )
 
+# NOVO BOTÃO PARA PDF
+col_pdf1, col_pdf2, col_pdf3 = st.columns([1, 2, 1])
+
+with col_pdf2:
+    # Gerar PDF quando o botão for clicado
+    pdf_data = gerar_pdf_recibo(
+        resumo_df=resumo_df,
+        salario_mensal=salario_mensal,
+        salario_anual=salario_anual,
+        contribuicao_mensal_total=contribuicao_mensal_total,
+        total_contribuicao_anual=total_contribuicao_anual,
+        valor_esporadica_personalizado=valor_esporadica_personalizado,
+        total_final=total_final
+    )
+    
+    st.download_button(
+        label="📄 Gerar Recibo em PDF",
+        data=pdf_data,
+        file_name=f"FRG_Recibo_Simulacao_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+        help="Gere um recibo oficial da simulação em formato PDF"
+    )
+
 st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
-
 # Rodapé estilo FRG
-st.markdown('<div style="margin-top: 3rem; padding: 2rem 1rem; background: linear-gradient(135deg, #8b043b 0%, #69042a 100%); color: white; border-radius: 10px; text-align: center;"><div style="margin-bottom: 1rem;"><div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Fundação de Previdência Real Grandeza</div><div style="font-size: 0.9rem; opacity: 0.9;">Simulador de Contribuição Esporádica - Versão 2025</div></div><div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem;"><div style="text-align: center;"><div style="font-size: 0.8rem; opacity: 0.8;">Informações</div><div style="font-size: 0.9rem; font-weight: 600;">0800 888 8123</div></div><div style="text-align: center;"><div style="font-size: 0.8rem; opacity: 0.8;">Site Oficial</div><div style="font-size: 0.9rem; font-weight: 600;">www.frg.com.br</div></div></div><div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.2);"><div style="font-size: 0.8rem; opacity: 0.8;">Este simulador tem caráter informativo. Consulte o regulamento vigente para informações completas.</div></div></div>', unsafe_allow_html=True)
-
+st.markdown('<div style="margin-top: 3rem; padding: 2rem 1rem; background: linear-gradient(135deg, #8b043b 0%, #69042a 100%); color: white; border-radius: 10px; text-align: center;"><div style="margin-bottom: 1rem;"><div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Fundação de Previdência Real Grandeza</div><div style="font-size: 0.9rem; opacity: 0.9;">Simulador de Contribuição Esporádica - Versão 2025</div></div><div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem; flex-wrap: wrap;"><div style="text-align: center;"><div style="font-size: 0.8rem; opacity: 0.8;">Informações</div><div style="font-size: 0.9rem; font-weight: 600;">0800 282 6800</div></div><div style="text-align: center;"><div style="font-size: 0.8rem; opacity: 0.8;">Site Oficial</div><div style="font-size: 0.9rem; font-weight: 600;">www.frg.com.br</div></div><div style="text-align: center;"><div style="font-size: 0.8rem; opacity: 0.8;">E-mail</div><div style="font-size: 0.9rem; font-weight: 600;">grp@frg.com.br</div></div></div><div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.2);"><div style="font-size: 0.8rem; opacity: 0.8;">Este simulador tem caráter informativo. Consulte o regulamento vigente para informações completas.</div></div></div>', unsafe_allow_html=True)
 # Botão flutuante para nova simulação
 st.markdown("""
 <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">

@@ -17,3 +17,5 @@ SQLAlchemy==2.0.45
 streamlit==1.50.0
 undetected_chromedriver==3.5.5
 openpyxl
+requests
+fpdf
