@@ -68,7 +68,7 @@ def gerar_pdf_recibo(resumo_df, salario_mensal, salario_anual, contribuicao_mens
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(20)
-    pdf.cell(0, 10, "RECIBO DE SIMULACAO - CONTRIBUICAO ESPORADICA", ln=True, align="C")
+    pdf.cell(0, 10, "RECIBO DE SIMULAÇÃO - CONTRIBUIÇÃO ESPORÁDICA", ln=True, align="C")
     
     # Linha decorativa
     pdf.set_draw_color(139, 4, 59)
@@ -78,7 +78,7 @@ def gerar_pdf_recibo(resumo_df, salario_mensal, salario_anual, contribuicao_mens
     
     # ===== INFORMAÇÕES DA SIMULAÇÃO =====
     pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, "DADOS DA SIMULACAO", ln=True)
+    pdf.cell(0, 10, "DADOS DA SIMULAÇÃO", ln=True)
     pdf.set_font('Helvetica', '', 11)
     
     # Data e hora
@@ -89,19 +89,19 @@ def gerar_pdf_recibo(resumo_df, salario_mensal, salario_anual, contribuicao_mens
     
     # Dados principais em tabela
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.cell(60, 8, "Descricao", border=1, align="C")
+    pdf.cell(60, 8, "Descrição", border=1, align="C")
     pdf.cell(40, 8, "Valor", border=1, align="C")
     pdf.cell(40, 8, "Detalhe", border=1, align="C", ln=True)
     
     pdf.set_font('Helvetica', '', 10)
     
     dados_principais = [
-        ["Salario Mensal", formatar_reais(salario_mensal), "Base de calculo"],
-        ["Salario Anual", formatar_reais(salario_anual), "14x (inclui PLR)"],
-        ["Contribuicao Mensal", formatar_reais(contribuicao_mensal_total), "Total mensal"],
-        ["Contribuicao Anual", formatar_reais(total_contribuicao_anual), "Acumulado anual"],
-        ["Contribuicao Esporadica", formatar_reais(valor_esporadica_personalizado), "Valor sugerido"],
-        ["TOTAL FINAL", formatar_reais(total_final), "Anual com esporadica"]
+        ["Salário Mensal", formatar_reais(salario_mensal), "Base de cálculo"],
+        ["Salário Anual", formatar_reais(salario_anual), "14x (inclui PLR)"],
+        ["Contribuição Mensal", formatar_reais(contribuicao_mensal_total), "Total mensal"],
+        ["Contribuição Anual", formatar_reais(total_contribuicao_anual), "Acumulado anual"],
+        ["Contribuição Esporádica", formatar_reais(valor_esporadica_personalizado), "Valor escolhido"],
+        ["TOTAL FINAL", formatar_reais(total_final), "Anual com esporádica"]
     ]
     
     for desc, valor, detalhe in dados_principais:
@@ -367,7 +367,7 @@ with col1:
         contribuicao_basica = contribuicao_basica_pct / 100
         valor_basica = salario_mensal * contribuicao_basica
         st.caption(f"**Valor mensal:** {formatar_reais(valor_basica)}")
-        
+
     with col1b:
         contribuicao_basica_outro_pct = st.slider(
             "**Contribuição Básica B (%)**",
@@ -590,15 +590,28 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-valor_esporadica_personalizado = st.slider(
-    "**Valor da Contribuição Esporádica (R$)**",
-    min_value=2387.04,
-    max_value=float(valor_maximo_esporadica * 1.1),
-    value=5000.0,
-    step=50.0,
-    format="%.0f",
-    help="Ajuste o valor conforme sua necessidade"
+# --- ADICIONE ESTE CHECKBOX ---
+incluir_esporadica = st.checkbox(
+    "Incluir contribuição esporádica no cálculo",
+    value=True,  # Por padrão já está marcado
+    help="Desmarque esta opção se não quiser incluir uma contribuição esporádica"
 )
+
+# AGORA, o slider só aparece se o checkbox estiver marcado
+if incluir_esporadica:
+    valor_esporadica_personalizado = st.slider(
+        "**Valor da Contribuição Esporádica (R$)**",
+        min_value=2387.04,
+        max_value=float(valor_maximo_esporadica * 1.1),
+        value=5000.0,
+        step=50.0,
+        format="%.0f",
+        help="Ajuste o valor conforme sua necessidade"
+    )
+else:
+    # Se o checkbox NÃO estiver marcado, o valor é ZERO
+    valor_esporadica_personalizado = 0.0
+    st.info("⚠️ A contribuição esporádica não será incluída no cálculo total.")
 
 # Cálculos finais
 if valor_esporadica_personalizado != 0:
