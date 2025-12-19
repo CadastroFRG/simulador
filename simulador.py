@@ -351,15 +351,19 @@ with col1:
     col1a, col1b = st.columns(2)
     
     with col1a:
-        contribuicao_basica_pct = st.slider(
-            "**Contribuição Básica A (%)**",
-            min_value=0.0,
-            max_value=100.0,
-            value=2.0,
-            step=0.1,
-            format="%.1f%%",
-            help="Parcela A da contribuição básica"
-        )
+        # Valor FIXO de 2% - não é mais um slider editável pelo usuário
+        contribuicao_basica_pct = 2.0  # Valor fixo
+        
+        # Exibir o valor fixo de forma elegante
+        st.markdown("""
+        <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+            <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.25rem;">Contribuição Básica A</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #8b043b; text-align: center;">2.0%</div>
+            <div class="badge-frg" style="margin-top: 0.5rem; font-size: 0.7rem;">FIXO</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Cálculo do valor (mantido igual)
         contribuicao_basica = contribuicao_basica_pct / 100
         valor_basica = salario_mensal * contribuicao_basica
         st.caption(f"**Valor mensal:** {formatar_reais(valor_basica)}")
